@@ -1,13 +1,12 @@
 package ru.avito.marketplace;
 
+
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class MarketplaceBackendApplication {
-
+public class AvitoApplication {
 	public static void main(String[] args) {
-		SpringApplication.run(MarketplaceBackendApplication.class, args);
+		SpringApplication.run(AvitoApplication.class, args);
 	}
-
 }
