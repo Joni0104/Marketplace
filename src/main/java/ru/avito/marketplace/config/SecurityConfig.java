@@ -1,4 +1,5 @@
 package ru.avito.marketplace.config;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,13 +13,14 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.JdbcUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import javax.sql.DataSource;
-import java.util.List;
+import java.util.Arrays;
+
+import static org.springframework.security.config.Customizer.withDefaults;
 
 @Configuration
 @EnableWebSecurity
@@ -27,7 +29,6 @@ import java.util.List;
 public class SecurityConfig {
 
     private final DataSource dataSource;
-    private final JwtFilter jwtFilter;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -36,27 +37,32 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Публичные endpoints
+                        // 1. Публичные GET запросы (как в требованиях)
                         .requestMatchers(HttpMethod.GET, "/ads").permitAll()
                         .requestMatchers(HttpMethod.GET, "/ads/{id}").permitAll()
                         .requestMatchers(HttpMethod.GET, "/ads/{adId}/comments").permitAll()
-                        .requestMatchers("/auth/**").permitAll()
+
+                        // 2. Публичные endpoints (регистрация, документация)
+                        .requestMatchers("/auth/register").permitAll() // только регистрация публичная
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/images/**").permitAll()
 
-                        // Требуют аутентификации
+                        // 3. Защищенные POST/PUT/PATCH/DELETE (как в требованиях)
                         .requestMatchers(HttpMethod.POST, "/ads/**").hasAnyRole("USER", "ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/ads/**").hasAnyRole("USER", "ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/ads/**").hasAnyRole("USER", "ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/ads/**").hasAnyRole("USER", "ADMIN")
                         .requestMatchers(HttpMethod.POST, "/ads/**/comments").hasAnyRole("USER", "ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/ads/**/comments/**").hasAnyRole("USER", "ADMIN")
-                        .requestMatchers("/users/me/**").hasAnyRole("USER", "ADMIN")
 
-                        // Остальные запросы требуют аутентификации
+                        // 4. Защищенные пользовательские endpoints
+                        .requestMatchers("/users/me/**").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers("/auth/change-password").hasAnyRole("USER", "ADMIN") // смена пароля защищена
+
+                        // 5. Все остальное требует аутентификации
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+                .httpBasic(withDefaults());
 
         return http.build();
     }
@@ -66,13 +72,13 @@ public class SecurityConfig {
         JdbcUserDetailsManager manager = new JdbcUserDetailsManager();
         manager.setDataSource(dataSource);
 
-        // Кастомные запросы для нашей схемы БД
+        // ИСПРАВЛЕННЫЕ ЗАПРОСЫ - таблица называется "user" (в кавычках, т.к. зарезервированное слово)
         manager.setUsersByUsernameQuery(
-                "SELECT email as username, password, enabled FROM users WHERE email = ?"
+                "SELECT email as username, password, enabled FROM \"user\" WHERE email = ?"
         );
         manager.setAuthoritiesByUsernameQuery(
                 "SELECT u.email as username, 'ROLE_' || u.role as authority " +
-                        "FROM users u WHERE u.email = ?"
+                        "FROM \"user\" u WHERE u.email = ?"
         );
 
         return manager;
@@ -86,10 +92,11 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:3000"));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

@@ -18,6 +18,7 @@ public interface AdMapper {
     @Mapping(target = "comments", ignore = true)
     Ad toEntity(CreateOrUpdateAdDto createOrUpdateAdDto);
 
+    @Mapping(target = "authorId", source = "author.id")
     AdDto toAdDto(Ad ad);
 
     @Mapping(target = "authorFirstName", source = "author.firstName")

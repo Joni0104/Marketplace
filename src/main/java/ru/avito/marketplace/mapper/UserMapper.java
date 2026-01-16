@@ -16,6 +16,7 @@ public interface UserMapper {
     @Mapping(target = "comments", ignore = true)
     @Mapping(target = "image", constant = "/images/avatars/default.png")
     @Mapping(target = "role", source = "role", defaultValue = "USER")
+    @Mapping(target = "email", source = "username")
     User toEntity(RegisterReq registerReq);
 
     UserDto toDto(User user);

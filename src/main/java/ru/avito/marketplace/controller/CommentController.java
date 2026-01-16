@@ -1,9 +1,5 @@
 package ru.avito.marketplace.controller;
 
-
-import ru.avito.marketplace.dto.CommentDto;
-import ru.avito.marketplace.dto.CreateOrUpdateCommentDto;
-import ru.avito.marketplace.dto.ResponseWrapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -12,19 +8,25 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-
-import java.time.OffsetDateTime;
-import java.util.Collections;
+import ru.avito.marketplace.dto.CommentDto;
+import ru.avito.marketplace.dto.CreateOrUpdateCommentDto;
+import ru.avito.marketplace.dto.ResponseWrapper;
+import ru.avito.marketplace.service.CommentService;
 
 @RestController
 @RequestMapping("/ads")
+@RequiredArgsConstructor
 @CrossOrigin(origins = "http://localhost:3000")
 @Tag(name = "Комментарии", description = "API для работы с комментариями")
 public class CommentController {
+
+    private final CommentService commentService;
 
     @Operation(
             summary = "Получить комментарии объявления",
@@ -46,8 +48,7 @@ public class CommentController {
             @Parameter(description = "ID объявления", required = true, example = "1")
             @PathVariable Integer adId) {
 
-        // Заглушка для Этапа I
-        ResponseWrapper<CommentDto> response = new ResponseWrapper<>(Collections.emptyList());
+        ResponseWrapper<CommentDto> response = commentService.getComments(adId);
         return ResponseEntity.ok(response);
     }
 
@@ -73,18 +74,11 @@ public class CommentController {
             @Parameter(description = "ID объявления", required = true, example = "1")
             @PathVariable Integer adId,
             @Parameter(description = "Данные комментария", required = true)
-            @Valid @RequestBody CreateOrUpdateCommentDto commentDto) {
+            @Valid @RequestBody CreateOrUpdateCommentDto commentDto,
+            Authentication authentication) {
 
-        // Заглушка для Этапа I
-        CommentDto response = new CommentDto();
-        response.setId(1);
-        response.setAuthorId(1);
-        response.setAuthorImage("/images/avatars/default.png");
-        response.setAuthorFirstName("Иван");
-        response.setCreatedAt(OffsetDateTime.now());
-        response.setText(commentDto.getText());
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        CommentDto created = commentService.addComment(adId, commentDto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @Operation(
@@ -104,8 +98,8 @@ public class CommentController {
             @Parameter(description = "ID комментария", required = true, example = "1")
             @PathVariable Integer commentId) {
 
-        // Заглушка для Этапа I
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+        commentService.deleteComment(adId, commentId);
+        return ResponseEntity.noContent().build();
     }
 
     @Operation(
@@ -135,15 +129,7 @@ public class CommentController {
             @Parameter(description = "Новые данные комментария", required = true)
             @Valid @RequestBody CreateOrUpdateCommentDto commentDto) {
 
-        // Заглушка для Этапа I
-        CommentDto response = new CommentDto();
-        response.setId(commentId);
-        response.setAuthorId(1);
-        response.setAuthorImage("/images/avatars/default.png");
-        response.setAuthorFirstName("Иван");
-        response.setCreatedAt(OffsetDateTime.now());
-        response.setText(commentDto.getText());
-
-        return ResponseEntity.ok(response);
+        CommentDto updated = commentService.updateComment(adId, commentId, commentDto);
+        return ResponseEntity.ok(updated);
     }
 }

@@ -38,9 +38,9 @@ public class User {
     @Column(name = "image")
     private String image;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "role", nullable = false)
-    private Role role;
+
+    @Column(nullable = false)
+    private String role;
 
     @OneToMany(mappedBy = "author", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private List<Ad> ads = new ArrayList<>();

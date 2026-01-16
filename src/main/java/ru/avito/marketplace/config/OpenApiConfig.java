@@ -14,7 +14,7 @@ import java.util.List;
 @Configuration
 public class OpenApiConfig {
 
-    @Value("${avito.openapi.dev-url}")
+    @Value("${avito.openapi.dev-url:http://localhost:8080}")
     private String devUrl;
 
     @Bean
